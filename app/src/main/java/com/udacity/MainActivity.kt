@@ -1,6 +1,7 @@
 package com.udacity
 
 import android.app.DownloadManager
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -8,13 +9,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import com.udacity.databinding.ActivityMainBinding
-import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
 
 
@@ -36,12 +37,15 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
+        custom_button.setLoadingButtonState(ButtonState.Completed)
 
         registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
 
         custom_button.setOnClickListener {
+            custom_button.setLoadingButtonState(ButtonState.Clicked)
             when (binding.content.optionsRadioGroup.checkedRadioButtonId) {
                 View.NO_ID -> {
+                    custom_button.setLoadingButtonState(ButtonState.Completed)
                     Toast.makeText(
                         this,
                         getString(R.string.select_download),
@@ -53,15 +57,47 @@ class MainActivity : AppCompatActivity() {
                 R.id.retrofit_radio -> download(DownloadType.RETROFIT)
             }
         }
+
+        createDownloadChannel()
+    }
+
+    private fun createDownloadChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationChannel = NotificationChannel(
+                CHANNEL_ID,
+                "Download",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply{
+                setShowBadge(false)
+            }
+
+            notificationChannel.enableVibration(true)
+            notificationChannel.description = "Download complete"
+
+            val notificationManager = getSystemService(NotificationManager::class.java)
+                    as NotificationManager
+
+            notificationManager.createNotificationChannel(notificationChannel)
+        }
     }
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+
+            if (downloadID == id) {
+                custom_button.setLoadingButtonState(ButtonState.Completed)
+                Toast.makeText(
+                    context,
+                    getString(R.string.download_completed),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
     private fun download(downloadType: DownloadType) {
+        custom_button.setLoadingButtonState(ButtonState.Loading)
         val url = (
                 when (downloadType) {
                     DownloadType.GLIDE -> GLIDE_URL
@@ -72,6 +108,7 @@ class MainActivity : AppCompatActivity() {
 
         val request =
             DownloadManager.Request(Uri.parse(url))
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
                 .setTitle(getString(R.string.app_name))
                 .setDescription(getString(R.string.app_description))
                 .setRequiresCharging(false)

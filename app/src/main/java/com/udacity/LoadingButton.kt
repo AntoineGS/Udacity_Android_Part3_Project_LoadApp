@@ -2,9 +2,11 @@ package com.udacity
 
 import android.animation.ValueAnimator
 import android.content.Context
-import android.graphics.Canvas
+import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
+import androidx.core.content.ContextCompat
+import kotlinx.android.synthetic.main.content_main.view.*
 import kotlin.properties.Delegates
 
 class LoadingButton @JvmOverloads constructor(
@@ -12,27 +14,94 @@ class LoadingButton @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
     private var widthSize = 0
     private var heightSize = 0
+    private var buttonText: String = ""
+    private var myBackgroundColor: Int = 0
+    private var progress: Float = 0f
+    private var valueAnimator = ValueAnimator()
+    private val textRect = Rect()
 
-    private val valueAnimator = ValueAnimator()
+    private var buttonState: ButtonState by Delegates.observable(ButtonState.Completed) { _, _, newValue ->
+        when (newValue) {
+            ButtonState.Loading -> {
+                valueAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+                    addUpdateListener {
+                        progress = animatedValue as Float
+                        invalidate()
+                    }
+                    repeatMode = ValueAnimator.REVERSE
+                    repeatCount = ValueAnimator.INFINITE
+                    duration = 750
+                    start()
+                }
 
-    private var buttonState: ButtonState by Delegates.observable<ButtonState>(ButtonState.Completed) { p, old, new ->
+                setText(context.getString(R.string.downloading))
+                setBgColor(context.getColor(R.color.colorPrimaryDark))
+                disableLoadingButton()
+            }
 
+            ButtonState.Completed -> {
+                valueAnimator.cancel()
+                resetProgress()
+                setText(context.getString(R.string.download))
+                setBgColor(context.getColor(R.color.colorPrimary))
+                enableLoadingButton()
+            }
+
+            ButtonState.Clicked -> {
+                // nothing to do
+            }
+        }
+        invalidate()
     }
-
 
     init {
-
+        context.theme.obtainStyledAttributes(
+            attrs,
+            R.styleable.LoadingButton,
+            0, 0
+        ).apply {
+            setText(context.getString(R.string.download))
+        }
     }
 
+    // Used for the styling of the text...
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        textAlign = Paint.Align.CENTER
+        textSize = context.resources.getDimension(R.dimen.default_text_size)
+        color = Color.WHITE
+    }
 
-    override fun onDraw(canvas: Canvas?) {
+    private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.colorPrimary)
+    }
+
+    private val downloadingBackgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.colorPrimaryDark)
+    }
+
+    override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        val backgroundWidth = measuredWidth.toFloat()
+        val backgroundHeight = measuredHeight.toFloat()
 
+        canvas.drawColor(myBackgroundColor)
+        textPaint.getTextBounds(buttonText, 0, buttonText.length, textRect)
+        canvas.drawRect(0f, 0f, backgroundWidth, backgroundHeight, backgroundPaint)
+
+        if (buttonState == ButtonState.Loading) {
+            val progressVal = progress * backgroundWidth
+            canvas.drawRect(0f, 0f, progressVal, backgroundHeight, downloadingBackgroundPaint)
+        }
+        val centerX = backgroundWidth / 2
+        val centerY = backgroundHeight / 2 - textRect.centerY()
+
+        canvas.drawText(buttonText, centerX, centerY, textPaint)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val minw: Int = paddingLeft + paddingRight + suggestedMinimumWidth
-        val w: Int = resolveSizeAndState(minw, widthMeasureSpec, 1)
+        val minimumWidth: Int = paddingLeft + paddingRight + suggestedMinimumWidth
+        val w: Int = resolveSizeAndState(minimumWidth, widthMeasureSpec, 1)
         val h: Int = resolveSizeAndState(
             MeasureSpec.getSize(w),
             heightMeasureSpec,
@@ -43,4 +112,33 @@ class LoadingButton @JvmOverloads constructor(
         setMeasuredDimension(w, h)
     }
 
+    private fun disableLoadingButton() {
+        custom_button.isEnabled = false
+    }
+
+    private fun enableLoadingButton() {
+        custom_button.isEnabled = true
+    }
+
+    // Used to provide a way to change the button state from the main activity
+    fun setLoadingButtonState(state: ButtonState) {
+        buttonState = state
+    }
+
+    //Sets the button text.
+    private fun setText(newButtonText: String) {
+        buttonText = newButtonText
+        invalidate()
+        requestLayout()
+    }
+
+    private fun setBgColor(newBackgroundColor: Int) {
+        myBackgroundColor = newBackgroundColor
+        invalidate()
+        requestLayout()
+    }
+
+    private fun resetProgress() {
+        progress = 0f
+    }
 }
