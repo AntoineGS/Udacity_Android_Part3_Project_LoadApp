@@ -2,6 +2,7 @@ package com.udacity
 
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.udacity.MainActivity.Companion.DownloadType
@@ -35,6 +36,13 @@ class DetailActivity : AppCompatActivity() {
 
         // in a production app this would obviously be translated to human readable text-based statuses
         binding.contentDetail.status.text = status.toString()
+
+        binding.fab.setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            startActivity(intent)
+            finish()
+        }
     }
 
 }
