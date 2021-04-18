@@ -19,6 +19,7 @@ class LoadingButton @JvmOverloads constructor(
     private var progress: Float = 0f
     private var valueAnimator = ValueAnimator()
     private val textRect = Rect()
+    private var animationDuration: Long = 0
 
     private var buttonState: ButtonState by Delegates.observable(ButtonState.Completed) { _, _, newValue ->
         when (newValue) {
@@ -30,7 +31,7 @@ class LoadingButton @JvmOverloads constructor(
                     }
                     repeatMode = ValueAnimator.REVERSE
                     repeatCount = ValueAnimator.INFINITE
-                    duration = 750
+                    duration = animationDuration
                     start()
                 }
 
@@ -60,8 +61,16 @@ class LoadingButton @JvmOverloads constructor(
             R.styleable.LoadingButton,
             0, 0
         ).apply {
-            setText(context.getString(R.string.download))
+            try {
+                buttonText = getString(R.styleable.LoadingButton_text).toString()
+                animationDuration = getInt(R.styleable.LoadingButton_animation_duration,
+                        1000).toLong()
+            } finally {
+                recycle()
+            }
         }
+
+        setText(buttonText)
     }
 
     // Used for the styling of the text...
@@ -80,6 +89,10 @@ class LoadingButton @JvmOverloads constructor(
         color = ContextCompat.getColor(context, R.color.colorPrimaryDark)
     }
 
+    private val downloadingArcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.colorAccent)
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val backgroundWidth = measuredWidth.toFloat()
@@ -90,8 +103,20 @@ class LoadingButton @JvmOverloads constructor(
         canvas.drawRect(0f, 0f, backgroundWidth, backgroundHeight, backgroundPaint)
 
         if (buttonState == ButtonState.Loading) {
-            val progressVal = progress * backgroundWidth
+            var progressVal = progress * backgroundWidth
             canvas.drawRect(0f, 0f, progressVal, backgroundHeight, downloadingBackgroundPaint)
+
+            val arcRectSize = backgroundHeight - paddingBottom.toFloat() - paddingTop.toFloat()
+            progressVal = progress * 360f
+
+            canvas.drawArc( backgroundWidth  - arcRectSize- paddingStart.toFloat(),
+                paddingTop.toFloat(),
+                backgroundWidth,
+                arcRectSize,
+                0f,
+                progressVal,
+                true,
+                downloadingArcPaint)
         }
         val centerX = backgroundWidth / 2
         val centerY = backgroundHeight / 2 - textRect.centerY()
