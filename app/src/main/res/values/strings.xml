@@ -18,4 +18,5 @@
     <string name="downloading">Downloading...</string>
     <string name="download">Download</string>
     <string name="download_completed">Download Completed</string>
+    <string name="open_detail">Open Detail</string>
 </resources>

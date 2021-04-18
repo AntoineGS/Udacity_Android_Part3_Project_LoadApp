@@ -18,12 +18,10 @@ import androidx.core.app.NotificationCompat
 import com.udacity.databinding.ActivityMainBinding
 import kotlinx.android.synthetic.main.content_main.*
 
-
 class MainActivity : AppCompatActivity() {
-
-    private enum class DownloadType {GLIDE, PROJECT, RETROFIT}
-
     private var downloadID: Long = 0
+    // only works since it is 1 d\l at a time
+    private var lastDownloadType: DownloadType = DownloadType.GLIDE
 
     private lateinit var notificationManager: NotificationManager
     private lateinit var pendingIntent: PendingIntent
@@ -65,16 +63,16 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(
                 CHANNEL_ID,
-                "Download",
+                getString(R.string.download),
                 NotificationManager.IMPORTANCE_DEFAULT
-            ).apply{
+            ).apply {
                 setShowBadge(false)
             }
 
             notificationChannel.enableVibration(true)
-            notificationChannel.description = "Download complete"
+            notificationChannel.description = getString(R.string.download_completed)
 
-            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager = getSystemService(NotificationManager::class.java)
                     as NotificationManager
 
             notificationManager.createNotificationChannel(notificationChannel)
@@ -92,11 +90,31 @@ class MainActivity : AppCompatActivity() {
                     getString(R.string.download_completed),
                     Toast.LENGTH_LONG
                 ).show()
+
+                val downloadManager =
+                    getSystemService(DownloadManager::class.java) as DownloadManager
+                val query = DownloadManager.Query().setFilterById(id)
+                val cursor = downloadManager.query(query)
+
+                if (cursor != null) {
+                    if (cursor.moveToLast()) {
+                        val status =
+                            cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
+
+                        notificationManager = getSystemService(NotificationManager::class.java)
+                                as NotificationManager
+
+                        notificationManager.sendNotification(
+                            lastDownloadType, status, applicationContext
+                        )
+                    }
+                }
             }
         }
     }
 
     private fun download(downloadType: DownloadType) {
+        lastDownloadType = downloadType
         custom_button.setLoadingButtonState(ButtonState.Loading)
         val url = (
                 when (downloadType) {
@@ -104,7 +122,7 @@ class MainActivity : AppCompatActivity() {
                     DownloadType.PROJECT -> PROJECT_URL
                     DownloadType.RETROFIT -> RETROFIT_URL
                 }
-        )
+                )
 
         val request =
             DownloadManager.Request(Uri.parse(url))
@@ -123,9 +141,15 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PROJECT_URL =
             "https://github.com/udacity/nd940-c3-advanced-android-programming-project-starter/archive/master.zip"
-        private const val GLIDE_URL = "https://github.com/bumptech/glide/archive/refs/heads/master.zip"
-        private const val RETROFIT_URL = "https://github.com/square/retrofit/archive/refs/heads/master.zip"
-        private const val CHANNEL_ID = "channelId"
+        private const val GLIDE_URL =
+            "https://github.com/bumptech/glide/archive/refs/heads/master.zip"
+        private const val RETROFIT_URL =
+            "https://github.com/square/retrofit/archive/refs/heads/master.zip"
+        const val CHANNEL_ID = "channelId"
+        const val EXTRA_DOWNLOAD_TYPE = "downloadType"
+        const val EXTRA_STATUS = "status"
+
+        enum class DownloadType { GLIDE, PROJECT, RETROFIT }
     }
 
 }
