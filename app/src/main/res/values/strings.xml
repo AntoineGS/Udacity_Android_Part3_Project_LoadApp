@@ -19,4 +19,9 @@
     <string name="download">Download</string>
     <string name="download_completed">Download Completed</string>
     <string name="open_detail">Open Detail</string>
+    <string name="download_glide">Glide Downloaded</string>
+    <string name="download_project">Project Downloaded</string>
+    <string name="download_retrofit">Retrofit Downloaded</string>
+    <string name="status">Download Status Code:</string>
+    <string name="detail">Detail</string>
 </resources>
