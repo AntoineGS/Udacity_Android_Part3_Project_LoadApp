@@ -3,7 +3,6 @@ package com.udacity
 import android.app.DownloadManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -14,7 +13,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
 import com.udacity.databinding.ActivityMainBinding
 import kotlinx.android.synthetic.main.content_main.*
 
@@ -22,11 +20,7 @@ class MainActivity : AppCompatActivity() {
     private var downloadID: Long = 0
     // only works since it is 1 d\l at a time
     private var lastDownloadType: DownloadType = DownloadType.GLIDE
-
     private lateinit var notificationManager: NotificationManager
-    private lateinit var pendingIntent: PendingIntent
-    private lateinit var action: NotificationCompat.Action
-
     private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
